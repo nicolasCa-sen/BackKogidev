@@ -7,6 +7,9 @@ const authRoutes = require('./routes/auth');
 const insumoRoutes = require('./routes/insumos');
 const movementRoutes = require('./routes/movements');
 const activityRoutes = require('./routes/activities');
+const salesRoutes = require('./routes/sales');
+const productsRoutes = require('./routes/products');
+const ceramicsRoutes = require('./routes/ceramics');
 
 const app = express();
 app.use(cors());
@@ -23,6 +26,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/insumos', insumoRoutes);
 app.use('/api/movements', movementRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/ceramics', ceramicsRoutes);
 
 // ruta salud
 app.get('/', (req, res) => res.send('API Cafe Galeria - backend operativo'));

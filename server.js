@@ -13,7 +13,10 @@ const ceramicsRoutes = require('./routes/ceramics');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+// Aumentamos el límite para aceptar imágenes en Base64
+app.use(express.json({ limit: '10mb' })); // antes solo era express.json()
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // conectarse a Mongo
 connectDB(process.env.MONGO_URI).catch(err => {

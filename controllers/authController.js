@@ -48,3 +48,29 @@ exports.login = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, 'name email role createdAt'); // Seleccionamos solo los campos que queremos exponer
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByIdAndDelete(id);
+
+    if (!user) return res.status(404).json({ msg: 'Usuario no encontrado' });
+
+    await logActivity(user, 'DELETE', `User:${user._id}`, { email: user.email });
+
+    res.json({ msg: 'Usuario eliminado correctamente', user: { id: user._id, name: user.name } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};

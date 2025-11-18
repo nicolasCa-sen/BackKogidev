@@ -17,11 +17,20 @@ const CeramicSaleItemSchema = new mongoose.Schema({
 const SaleSchema = new mongoose.Schema({
   products: { type: [ProductSaleItemSchema], default: [] },
   ceramics: { type: [CeramicSaleItemSchema], default: [] },
-  totalAmount: { type: Number, required: true, min: 0 },
+  totalAmount: { 
+    type: Number, 
+    required: true
+    // ⭐ REMOVIDO: min: 0 para permitir gastos negativos
+  },
   customer: { type: String, trim: true, default: '' },
-  date: { type: Date, default: Date.now }
+  date: { type: Date, default: Date.now },
+  // ⭐ NUEVO: Campo para identificar gastos fácilmente
+  isExpense: { type: Boolean, default: false }
 }, {
   timestamps: true
 });
+
+// Índice para consultas por fecha
+SaleSchema.index({ date: -1 });
 
 module.exports = mongoose.model('Sale', SaleSchema);

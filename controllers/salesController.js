@@ -60,24 +60,63 @@ function computeTotal(products = [], ceramics = []) {
 
 exports.createSale = async (req, res) => {
   try {
-    const { products = [], ceramics = [], customer = '', date } = req.body;
+    const { products = [], ceramics = [], customer = '', date, totalAmount, isExpense } = req.body;
+    
+    // ⭐ NUEVO: Permitir crear gastos directamente (sin productos/cerámicas)
+    if (isExpense && totalAmount < 0) {
+      // Es un gasto simple
+      const sale = new Sale({
+        products: [],
+        ceramics: [],
+        totalAmount: totalAmount, // Ya viene negativo del frontend
+        customer,
+        date: date || new Date(),
+        isExpense: true
+      });
+      await sale.save();
+      return res.status(201).json(sale);
+    }
+
+    // Validación normal para ventas
     if ((!products || products.length === 0) && (!ceramics || ceramics.length === 0)) {
       return res.status(400).json({ message: 'At least one product or ceramic required' });
     }
 
     const preparedProducts = await prepareProductItems(products);
     const preparedCeramics = await prepareCeramicItems(ceramics);
-    const totalAmount = computeTotal(preparedProducts, preparedCeramics);
+    const computedTotal = computeTotal(preparedProducts, preparedCeramics);
 
+    // Crear la venta
     const sale = new Sale({
       products: preparedProducts,
       ceramics: preparedCeramics,
-      totalAmount,
+      totalAmount: computedTotal,
       customer,
-      date
+      date: date || new Date(),
+      isExpense: false
     });
 
     await sale.save();
+
+    // Eliminar las cerámicas vendidas de la base de datos
+    if (preparedCeramics.length > 0) {
+      console.log('🗑️ Eliminando cerámicas vendidas...');
+      
+      for (const ceramicItem of preparedCeramics) {
+        try {
+          const deleted = await Ceramic.findByIdAndDelete(ceramicItem.ceramicId);
+          if (deleted) {
+            console.log(`✅ Cerámica eliminada: ${ceramicItem.name} (${ceramicItem.ceramicId})`);
+          } else {
+            console.warn(`⚠️ Cerámica no encontrada para eliminar: ${ceramicItem.ceramicId}`);
+          }
+        } catch (deleteError) {
+          console.error(`❌ Error al eliminar cerámica ${ceramicItem.name}:`, deleteError);
+        }
+      }
+    }
+
+    // Devolver la venta con populate
     const populated = await Sale.findById(sale._id)
       .populate('products.productId', 'name price')
       .populate('ceramics.ceramicId', 'name price');
@@ -137,7 +176,6 @@ exports.updateSale = async (req, res) => {
     const existing = await Sale.findById(id);
     if (!existing) return res.status(404).json({ message: 'Sale not found' });
 
-    // If products/ceramics provided, validate and recompute total. Otherwise keep existing.
     const productsInput = req.body.products !== undefined ? req.body.products : existing.products;
     const ceramicsInput = req.body.ceramics !== undefined ? req.body.ceramics : existing.ceramics;
 
